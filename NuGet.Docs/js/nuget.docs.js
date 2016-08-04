@@ -1,4 +1,4 @@
-﻿$(function () {
+$(function () {
     $("#toc-hide").click(function (e) {
         e.preventDefault();
         $("#toc").hide();
@@ -66,6 +66,69 @@ function prepareList() {
     })
 };
 
+function copyButton() {
+    var btn = $('<button class="btn btn-sm" data-toggle="tooltip" data-clipboard-snippet><span class="glyphicon glyphicon-copy"></span></button>');
+    btn.mouseleave(function() {
+        $(this)
+            .removeAttr('data-original-title')
+            .tooltip('hide');
+    });
+    return btn;
+}
+
+function prepareSnippets() {
+    $('code').each(function () {
+        var snippet = $(this);
+        if (snippet.parent().is('pre')) {
+            snippet.parent().addClass('snippet');
+            snippet.before(copyButton());
+        }
+        else if (snippet.parent().is('p')) {
+            var lines = snippet.text().split(/\r\n|\r|\n/).length;
+            if (lines > 1) {
+                snippet.parent().addClass('snippet');
+                snippet.before(copyButton());
+            }
+        }
+    });
+
+    $('[data-toggle="tooltip"]').tooltip({title: 'Copy to clipboard'});
+}
+
+function prepareClipboard() {
+    var clipboardSnippets = new Clipboard('[data-clipboard-snippet]', {
+        target: function (trigger) {
+            return $(trigger).siblings('code:first').get(0);
+        }
+    });
+    clipboardSnippets.on('success', function (e) {
+        e.clearSelection();
+        showTooltip(e.trigger, 'Copied!');
+    });
+    clipboardSnippets.on('error', function (e) {
+        showTooltip(e.trigger, fallbackMessage(e.action));
+        console.log(e);
+    });
+}
+
+function showTooltip(elem, msg) {
+    $(elem)
+        .attr('data-original-title', msg)
+        .tooltip('show');
+}
+
+function fallbackMessage(action) {
+    var actionMsg = '';
+    if (/iPhone|iPad/i.test(navigator.userAgent)) {
+        actionMsg = 'Not supported on iPhone/iPad';
+    } else if (/Mac/i.test(navigator.userAgent)) {
+        actionMsg = 'Press ⌘-C to copy';
+    } else {
+        actionMsg = 'Press Ctrl-C to copy';
+    }
+    return actionMsg;
+}
+
 $(document).ready(function () {
     $.fx.off = true;
     prepareList();
@@ -101,4 +164,7 @@ $(document).ready(function () {
     else {
         $('#expList').children('li').first().click();
     }
+
+    prepareSnippets();
+    prepareClipboard();
 });
